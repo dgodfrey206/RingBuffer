@@ -1,14 +1,12 @@
 #include <iostream>
-#include <iterator>
-#include <memory>
 #include <cstring>
-#include <cmath>
+#include <memory>
 using namespace std;
 
 template<class T>
 class RingBuffer {
 public:
-    RingBuffer() = default;
+    RingBuffer() = delete;
     RingBuffer(size_t);
     RingBuffer(size_t, T const&);
     T get() const;
@@ -33,17 +31,17 @@ private:
     void set_next_write_position() const;
     void set_next_read_position() const;
 private:
-    unique_ptr<T[]> m_buffer = nullptr;
-    size_t read, write;
-    size_t m_capacity = 0;
+    unique_ptr<T[]> buffer = nullptr;
+    mutable size_t read, write, length, capacity = 0;
 };
 
 template<class T>
 RingBuffer<T>::RingBuffer(size_t capacity)
-    : m_buffer(make_unique<T[]>(capacity+1))
+    : buffer(make_unique<T[]>(capacity+1))
     , read(0)
     , write(0)
-    , m_capacity(capacity+1)
+    , length(0)
+    , capacity(capacity+1)
 {}
 
 template<class T>
@@ -58,30 +56,34 @@ template<class T>
 void RingBuffer<T>::put(T const& value) {
     if (!full()) {
         put(value, is_trivially_copyable<T>{});
-        write = (write + 1) % m_capacity;
+        write = (write + 1) % capacity;
+        ++length;
     }
 }
 
 template<class T>
 T RingBuffer<T>::get() const {
-    T tmp = m_buffer[read];
-    read = (read + 1) % m_capacity;
+    T tmp = buffer[read];
+    if (!empty()) {
+        read = (read + 1) % capacity;
+        --length;
+    }
     return tmp;
 }
 
 template<class T>
 void RingBuffer<T>::put(T const& value, true_type) {
-    memcpy(reinterpret_cast<void*>(&m_buffer[write]), reinterpret_cast<void*>(const_cast<T*>(&value)), sizeof(value));
+    memcpy(reinterpret_cast<void*>(&buffer[write]), reinterpret_cast<void*>(const_cast<T*>(&value)), sizeof(value));
 }
 
 template<class T>
 void RingBuffer<T>::put(T const& value, false_type) {
-    m_buffer[write] = value;
+    buffer[write] = value;
 }
 
 template<class T>
 T* const RingBuffer<T>::begin() const {
-    return &m_buffer[read];
+    return &buffer[read];
 }
 
 template<class T>
@@ -91,7 +93,7 @@ T* RingBuffer<T>::begin() {
 
 template<class T>
 T* RingBuffer<T>::end() {
-    return &m_buffer[write];
+    return &buffer[write];
 }
 
 template<class T>
@@ -123,15 +125,15 @@ T const& RingBuffer<T>::back() const {
 
 template<class T>
 size_t RingBuffer<T>::size() const {
-    return abs(write - read);
+    return length;
 }
 
 template<class T>
 bool RingBuffer<T>::full() const {
-    return read == (write + 1) % m_capacity;
+    return read == (write + 1) % capacity;
 }
 
 template<class T>
 bool RingBuffer<T>::empty() const {
-    return write == read;
+    return size == 0;
 }
