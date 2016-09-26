@@ -1,12 +1,14 @@
+#include <stdexcept>
 #include <iostream>
-#include <cstring>
 #include <memory>
+#include <cstring>
+#include <cmath>
 using namespace std;
 
 template<class T>
 class RingBuffer {
 public:
-    RingBuffer() = delete;
+    RingBuffer() = default;
     RingBuffer(size_t);
     RingBuffer(size_t, T const&);
     T get() const;
@@ -63,12 +65,13 @@ void RingBuffer<T>::put(T const& value) {
 
 template<class T>
 T RingBuffer<T>::get() const {
-    T tmp = buffer[read];
     if (!empty()) {
+        T tmp = buffer[read];
         read = (read + 1) % capacity;
         --length;
+        return tmp;
     }
-    return tmp;
+    throw logic_error("empty buffer");
 }
 
 template<class T>
