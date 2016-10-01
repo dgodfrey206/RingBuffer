@@ -110,7 +110,6 @@ private:
     void put(T const&, true_type);
     void put(T const&, false_type);
     int overflow(int n) const;
-    int underflow(int n) const;
 private:
     shared_ptr<T> buffer = nullptr;
     mutable size_t read, write, length, capacity = 0;
@@ -140,8 +139,6 @@ void RingBuffer<T>::put(T const& value) {
         put(value, is_trivially_copyable<T>{});
         write = overflow(write + 1);
         ++length;
-    } else {
-        cout<<'X';
     }
 }
 
@@ -258,11 +255,4 @@ T const& RingBuffer<T>::at(size_t idx) const {
 template<class T>
 int RingBuffer<T>::overflow(int n) const {
     return n % capacity;
-}
-
-template<class T>
-int RingBuffer<T>::underflow(int n) const {
-    if (n == 0)
-        return length-1;
-    return n-1; 
 }
