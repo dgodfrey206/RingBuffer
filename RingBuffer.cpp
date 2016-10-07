@@ -7,8 +7,8 @@ using namespace std;
 // An iterator for a cirular before (returned by the begin() and end() methods)
 template<class T>
 class ring_iterator {
-    size_t idx; // current index
-    size_t cycle; // index where there is a complete cycle
+    int idx; // current index
+    int cycle; // index where there is a complete cycle
     T* buffer; // pointer to the element where idx lies (i.e buffer[idx])
 public:
     ring_iterator(size_t idx, size_t cycle, T* buffer) : idx(idx), cycle(cycle), buffer(buffer) {}
@@ -62,18 +62,15 @@ public:
     
     // With -= we need to handle going past 0 and onto the other side of the ring.
     ring_iterator& operator-=(int offset) {
-        int tmpidx = static_cast<int>(idx); // tmpidx will store idx as an integer in order to get negative values
-        tmpidx -= offset; // decrease by offset
+        idx -= offset; // decrease by offset
         // if the decrement yeiled a negative number, continually subtract |tmpidx|-1 from cycle
-        while (tmpidx < 0)
-            tmpidx = cycle - (abs(tmpidx) - 1);
-        // store new value
-        idx = tmpidx;
+        while (idx < 0)
+            idx = cycle - (abs(idx) - 1);
         return *this;
     }
     
     // the element in the buffer
-    T& operator*() const {
+    T& operator*() {
         return buffer[idx];
     }
     
